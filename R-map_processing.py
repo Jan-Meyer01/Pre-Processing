@@ -6,7 +6,7 @@ from numpy import inf
 import numpy as np
 
 # custom imports
-from utils import get_image_paths, data_cleaning, remove_outliers
+from utils import get_image_paths, data_cleaning, clip_outliers
 
 '''
 Script for processing R maps. It combines the scripts `data_cleaner`, `apply_mask` and `outlier_remover` to reduce the number of commands that need to be executed. 
@@ -50,14 +50,17 @@ for subject in args.subject:
         volume[mask == 0] = 0
 
         # remove NaN, zeros, etc. from volume
-        volume = data_cleaning(volume)
+        volume = data_cleaning(volume,replacement_value=1)
+
+        # scale because values in ms are needed for JEMRIS simulation
+        volume = volume * 1000
 
         # remove outliers from the volume using different thresholds for R1 and R2star
         if nifti_file_path.find('R1') != -1:
-            volume = remove_outliers(volume,threshold=0.999)
+            volume = clip_outliers(volume,threshold=0.99)
         elif nifti_file_path.find('R2s') != -1:
-            volume = remove_outliers(volume,threshold=0.995)
-        
+            volume = clip_outliers(volume,threshold=0.99)
+
         # turn the volume into a Nifti image using the affine transform and save the data
         save_vol = nib.Nifti1Image(volume, nifti_file.affine)
         print('Saving ',basename(nifti_file_path))

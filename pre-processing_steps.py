@@ -4,7 +4,7 @@ import nibabel as nib
 import argparse
 
 # custom imports
-from utils import get_image_paths, data_cleaning, remove_outliers, skull_stripping, process_volume_data
+from utils import get_image_paths, data_cleaning, clip_outliers, skull_stripping, process_volume_data
 
 # parse in and out folders through the command line
 p = argparse.ArgumentParser(description='Pre-processing pipeline (data cleaning, skull-stripping) for 3D nifti images.')
@@ -27,11 +27,11 @@ nifti_files = get_image_paths(args.input, ['PD']) #,'R1','R2s'
 # select pre-processing steps
 mode = int(args.mode)
 if mode == 0:
-    functions = [data_cleaning,remove_outliers,skull_stripping]
+    functions = [data_cleaning,clip_outliers,skull_stripping]
 elif mode == 1:
     functions = [data_cleaning]
 elif mode == 2:
-    functions = [remove_outliers]
+    functions = [clip_outliers]
 elif mode == 3:
     functions = [skull_stripping]
 elif mode == 4:
@@ -48,7 +48,7 @@ for nifti_file_path in nifti_files:
 
     # apply processing
     for function in functions:
-        if function == remove_outliers:
+        if function == clip_outliers:
             assert args.threshold < 1 and args.threshold > 0
             volume = function(volume, args.threshold)
         else:

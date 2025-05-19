@@ -4,7 +4,7 @@ import nibabel as nib
 import argparse
 
 # custom imports
-from utils import get_image_paths, remove_outliers
+from utils import get_image_paths, clip_outliers
 
 # parse in and out folders through the command line
 p = argparse.ArgumentParser(description='Pre-processing pipeline (data cleaning, skull-stripping) for 3D nifti images.')
@@ -34,7 +34,7 @@ for nifti_file_path in nifti_files:
 
         # remove outliers
         assert args.threshold < 1 and args.threshold > 0
-        volume = remove_outliers(volume, args.threshold)
+        volume = clip_outliers(volume, args.threshold)
 
         # save the processed volume to the target folder
         volume_save = nib.Nifti1Image(volume, affine)

@@ -8,7 +8,7 @@ from scipy.io import savemat
 from subprocess import call
 
 # custom imports
-from utils import get_image_paths, data_cleaning, remove_outliers, run_freesurfer
+from utils import get_image_paths, data_cleaning, clip_outliers, run_freesurfer
 
 '''
 Script for the complete pre-processing pipeline
@@ -111,14 +111,14 @@ offset = [0,0,0]                                # and offset
 # clean data, remove outliers and save T maps as well as mat files
 for num in range(len(T1_maps)):
     # for T1
-    T1_maps[num][0] = remove_outliers(data_cleaning(T1_maps[num][0]),threshold=0.999)
+    T1_maps[num][0] = clip_outliers(data_cleaning(T1_maps[num][0]),threshold=0.999)
     save_vol = nib.Nifti1Image(T1_maps[num][0], T1_maps[num][2]) 
     save_name = basename(T1_maps[num][1]).replace("R1", "T1") 
     print('Saving processed {} file as {}'.format(basename(T1_maps[num][1]),save_name))
     nib.save(save_vol, join(target_folder_files, save_name))
 
     # and for T2 star
-    T2star_maps[num][0] = remove_outliers(data_cleaning(T2star_maps[num][0]),threshold=0.99)
+    T2star_maps[num][0] = clip_outliers(data_cleaning(T2star_maps[num][0]),threshold=0.99)
     save_vol = nib.Nifti1Image(T2star_maps[num][0], T2star_maps[num][2])
     save_name = basename(T2star_maps[num][1]).replace("R2s", "T2s") 
     print('Saving processed {} file as {}'.format(basename(T2star_maps[num][1]),save_name))

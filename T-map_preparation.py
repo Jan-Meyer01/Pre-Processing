@@ -6,7 +6,7 @@ from numpy import inf
 import numpy as np
 
 # custom imports
-from utils import get_image_paths, data_cleaning, remove_outliers
+from utils import get_image_paths, data_cleaning, clip_outliers
 
 '''
 Script for generating T maps from R maps. It combines the scripts `R_to_T_converter`, `data_cleaner`, `apply_mask` and `outlier_remover` to reduce the number of commands that need to be executed. 
@@ -50,14 +50,21 @@ for subject in args.subject:
         nifti_file = nib.load(nifti_file_path)
         volume = nifti_file.get_fdata()
 
+        # clean the volume
+        volume = data_cleaning(vol=volume,replacement_value=1)
+
         # thresholding for feasable values (we know which T values to expect in human tissue)
-        volume[volume<0.1] = np.nan
+        cutoff = 0.1
+        volume[volume<cutoff] = np.nan
         
         # invert the map
         volume = 1/volume
 
         # extract brain using the mask
         volume[mask == 0] = 0
+
+        # revert NaN values back with limited range
+        volume[np.isnan(volume)] = 1/cutoff
         
         # scale because values in ms are needed for JEMRIS simulation
         volume = volume * 1000
@@ -73,13 +80,13 @@ assert len(T1_maps) == len(T2star_maps)
 # clean data, remove outliers and save T maps
 for num in range(len(T1_maps)):
     # for T1
-    save_vol = nib.Nifti1Image(remove_outliers(data_cleaning(T1_maps[num][0]),threshold=0.999), T1_maps[num][2]) 
+    save_vol = nib.Nifti1Image(clip_outliers(T1_maps[num][0],threshold=0.99), T1_maps[num][2])  
     save_name = basename(T1_maps[num][1]).replace("R1", "T1") 
     print('Saving processed {} file as {}'.format(basename(T1_maps[num][1]),save_name))
     nib.save(save_vol, join(target_folder, save_name))
 
     # and for T2 star
-    save_vol = nib.Nifti1Image(remove_outliers(data_cleaning(T2star_maps[num][0]),threshold=0.99), T2star_maps[num][2])
+    save_vol = nib.Nifti1Image(clip_outliers(T2star_maps[num][0],threshold=0.99), T2star_maps[num][2]) 
     save_name = basename(T2star_maps[num][1]).replace("R2s", "T2s") 
     print('Saving processed {} file as {}'.format(basename(T2star_maps[num][1]),save_name))
     nib.save(save_vol, join(target_folder, save_name))

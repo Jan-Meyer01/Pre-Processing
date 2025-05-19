@@ -68,10 +68,10 @@ def process_volume_data(vol, debug=False):
     # remove outliers
     if debug:
         start = time.time()
-        vol_no_outliers = remove_outliers(vol_clean, threshold=3)
+        vol_no_outliers = clip_outliers(vol_clean, threshold=3)
         print('Outlier removal took {} seconds'.format(time.time()-start))
     else:
-        vol = remove_outliers(vol, threshold=3)        
+        vol = clip_outliers(vol, threshold=3)        
     
     print('Skull-stripping')
     # skull stripping to extract the brain
@@ -87,23 +87,23 @@ def process_volume_data(vol, debug=False):
     else: 
         return vol
 
-def data_cleaning(vol):
+def data_cleaning(vol, replacement_value=0):
     '''
-    Remove negative, NaN and inf values from a given 3D volume [np.array].
+    Set negative, NaN and inf values from a given 3D volume [np.array] to a replacement value [int or float].
     '''
 
     # zero out negative values
-    vol[vol < 0] = 0
+    vol[vol < 0] = replacement_value
     # NaN values
-    vol[np.isnan(vol)] = 0
+    vol[np.isnan(vol)] = replacement_value
     # and inf values
-    vol[vol == inf] = 0
+    vol[vol == inf] = replacement_value
     
     return vol
 
-def remove_outliers(vol, threshold=0.9975):
+def clip_outliers(vol, threshold=0.9975):
     '''
-    Remove outliers from a given 3D volume [np.array] based on the histogram and a given threshold [int] in percent of values to keep.
+    Clip outliers from a given 3D volume [np.array] based on the histogram and a given threshold [float] (in percent) of values after which outliers are clipped to the highest value. 
     '''
 
     # get histogram of the volume with 100.000 bins for better accuracy
@@ -117,7 +117,7 @@ def remove_outliers(vol, threshold=0.9975):
         cumultative_value += hist[index]
 
     # and remove all values above the indexed bin
-    vol[vol > bin_edges[index]] = 0
+    vol[vol > bin_edges[index]] = bin_edges[index]
 
     return vol
 
