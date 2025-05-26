@@ -1,0 +1,202 @@
+%Comments:
+% 1) The BIDS-converted b1 maps from Kings were weirdly stored and therefore saved in a different folder
+% 2) The b1 maps from Bonn & Hamburg needed some adjustments (Firstly there were folded and secondly they needed a correction. 
+%    Laurin did this, so I only used Laurins maps. I think you already have the code
+% 3) the b1 maps need to be normalized. Laurin did this already for his maps (HH & Bonn), for the other the scaling factor is important
+% 4) The Kings data are organized different than all the other data: For all the other sites ses-001/002 refers to the scan protocol, for Kings
+%    ses-001 is scan and ses-002 is rescan for sub-phy001
+
+function MPM_preprocessed_B1(analysisParameters, site, subjects, mainPath, p_out, FA_value)
+    fprintf('\n');
+    disp(['--- Now processing: ', site])
+    
+    data_path = fullfile(mainPath, site);
+    BIDS = bids.layout(data_path);
+    FA= FA_value; %This is the Flip angle of the specific site, from which the scaling factor will be calculated
+    warning('Maybe you could think about already using normalized (values from 0-100) B1 maps, so the FA_value gets redundant')
+
+    for inx_sub = 1:length(subjects) %%Loop over the subjects
+        ses = {};
+        ses_label = {};
+                
+
+        subj = subjects{inx_sub};    %Define subject
+        sessions = bids.query(BIDS, 'sessions','sub', subj); %ses reflects if its scan-rescan for phy001
+
+        %We want: iteration over two sessions (ses-001 & ses-002) for Kings, only ses-001 for Bonn and Hamburg
+        %         1 run for all the subjects in Kings, but 2 for phy001 in Bonn and Hamburg (scan-rescan)
+warning('mit etwas besserer Structur der NIFTIS kann man sich hier sehr viel Code sparen')
+
+        %Define session-label
+        if contains(site, 'Hamburg') 
+            ses_label{1} = 'ses-001'; %To exclude ses-002 (which is 3D EPI measurement)
+            ses{1} = sessions{1};
+        else
+            for indx_ses= 1:length(sessions)   %With this for loop you get the correct amount of sesseions for Bonn & King 
+                ses{indx_ses} = sessions{indx_ses};
+                ses_label{indx_ses} = ['ses-' ses{indx_ses}];
+            end
+        end
+      %Should be 1 for Hamburg and Bonn, but ses-001 & ses-002 for Kings
+
+        %amount of runs (sessions)
+        nrun=length(ses); %!! Generally it should be always 1(because scan-rescan is in the same session, except for Kings
+
+        if contains(site, 'Bonn') && strcmp(subj, 'sub-phy001')
+           nrun=2;
+        elseif contains(site, 'Hamburg') && strcmp(subj, 'sub-phy001')
+           nrun=2;
+        end
+        %Should be: nrun=2 for phy001 and nrun 1 for all the other subjects
+        if analysisParameters.useDenoising
+                jobfile = {fullfile(analysisParameters.codeDir, 'JobFiles/hMRImaps_with_preprocessed_B1_and_denoising_job.m')};
+                jobs = repmat(jobfile, 1, nrun);
+                inputs = cell(7, nrun);
+        else
+                jobfile = {fullfile(analysisParameters.codeDir, 'JobFiles/hMRImaps_with_preprocessed_B1_job.m')};
+                jobs = repmat(jobfile, 1, nrun);
+                inputs = cell(6, nrun);
+        end
+%!!! 
+        if inx_sub > 1
+            warning('!!! the original B1 maps are folded for phy002-004 therefore the corrected data from Laurin are used. Please check that you have this data saved somewhere and add the corresponding path');
+        end
+
+        % Loop over sessions
+            for indx_run = 1:nrun 
+                % Special case with Bonn:
+                if contains(site, 'Bonn') && strcmp(subj, 'sub-phy001') && indx_run == 2
+                   ses_label{2} = ('ses-002');
+                elseif contains(site, 'Hamburg') && strcmp(subj, 'sub-phy001') && indx_run == 2
+                   ses_label{2} = ('ses-001');%Hamburg always stays ses-001 otherwise it is confusing
+                end
+
+                % Create Output directory
+                    outputDir = fullfile(p_out , 'MPMs', site,  subj, ses_label{indx_run});
+                
+                    if ~exist(outputDir, 'dir')
+                        mkdir(outputDir);
+                    else
+                        disp(['folder already exists ', outputDir]);
+                    end
+
+                    if analysisParameters.useDenoising
+
+                        outputDirDenoising = [outputDir filesep 'denoisedMPMs'];
+                        if ~exist(outputDirDenoising, 'dir')
+                            mkdir(outputDirDenoising);
+                        else
+                            disp(['folder already exists ', outputDirDenoising]);
+                        end
+
+                    end
+
+                %The naming of the acquired data is different for the sites, therefore the code checkes which site is processed and use the
+                %corresponding data
+                 if contains(site, 'Kings')
+                    % B1 map
+                    searchmask= fullfile(data_path, subj, ses_label{indx_run}, 'corrected_fmap', '*TB1TFL.nii'); %!!! Hier Pfad anpassen
+                    fileList=dir(searchmask);
+                    all_B1_maps_path=[{fullfile(fileList(1).folder, fileList(1).name)}; {fullfile(fileList(2).folder, fileList(2).name)}];
+                    % MPM data
+                    PDw_maps_path=bids.query(BIDS, 'data', 'ses', ses{indx_run}, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'part', 'mag', 'mt', 'off', 'flip', '6');
+                    T1w_maps_path=bids.query(BIDS, 'data', 'ses', ses{indx_run}, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'part', 'mag', 'mt', 'off', 'flip', '21');
+                    MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses{indx_run}, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'part', 'mag', 'mt', 'on', 'flip', '6');
+                    
+                    scalingFactor=(10/FA);
+
+                 elseif contains(site, 'Bonn')
+                     acqname_anat = bids.query(BIDS, 'acquisitions', 'ses', ses{1}, 'sub', subj, 'modality', 'anat'); %If anat is needed
+                     scalingFactor = 100; %The corrected B1 maps from Laurin are already normalized to 0-1, the values should be 0-100, therefore the scalingfactor is 100 (The flip angle is 60°)
+                     
+                     if strcmp(subj, 'sub-phy001')
+                        run = ['run-' num2str(indx_run)];   %For phy001 both B1 maps (scan & rescan are saved in the same folder
+                        % B1 map
+                        searchmask_TB1= fullfile(data_path, subj, ses_label{1}, 'fmap', ['*' run '*B1map.nii']); %Only ses-001 for this data exist containing both datasets
+                        fileTB1=dir(searchmask_TB1);
+                        searchmask_B1= fullfile(data_path, subj, ses_label{1}, 'fmap', ['*B1Ref*' run '*.nii']);
+                        fileB1=dir(searchmask_B1);
+                        all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
+                        % MPM data
+                        results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii.gz', 'acq', acqname_anat{1}, 'part', '', 'run', indx_run);
+                        PDw_maps_path=results_bids_query(contains(results_bids_query,'PDw'));
+                        T1w_maps_path=results_bids_query(contains(results_bids_query,'T1w'));
+                        T2w_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', 'mag', 'run', indx_run);
+                        
+                     else
+
+                        searchmask_TB1= fullfile(data_path, subj, ses_label{indx_run}, 'fmap', '*B1map.nii.gz');
+                        fileTB1=dir(searchmask_TB1);
+                        searchmask_B1= fullfile(data_path, subj, ses_label{indx_run}, 'fmap', '*B1ref*.nii.gz');
+                        fileB1=dir(searchmask_B1);
+                        all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
+                
+                        results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii.gz', 'acq', acqname_anat{1}, 'part', ''); 
+                        PDw_maps_path=results_bids_query(contains(results_bids_query,'PDw'));
+                        T1w_maps_path=results_bids_query(contains(results_bids_query,'T1w'));
+                        T2w_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', 'mag');
+                        
+                     end
+
+                elseif contains(site, 'Hamburg')
+                        run = ['run-' num2str(indx_run)];
+                        scalingFactor = 100; %The corrected B1 maps from Laurin are already normalized to 0-1, the values should be 0-100, therefore the scalingfactor is 100 
+                     
+                        if strcmp(subj, 'sub-phy001')
+                            searchmask_TB1= fullfile(data_path, subj, ses_label{indx_run}, 'corrected_fmap', ['*' run '*B1map.nii']);
+                            fileTB1=dir(searchmask_TB1);
+                            searchmask_B1= fullfile(data_path, subj, ses_label{indx_run}, 'corrected_fmap', ['*B1ref*' run '*.nii']);
+                            fileB1=dir(searchmask_B1);
+                            all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
+            
+                            PDw_maps_path=bids.query(BIDS, 'data', 'ses', ses{1}, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'part', 'mag', 'mt', 'off', 'flip', '6', 'run', string(indx_run));
+                            T1w_maps_path=bids.query(BIDS, 'data', 'ses', ses{1}, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'part', 'mag','mt', 'off', 'flip', '21', 'run', string(indx_run));
+                            MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses{1}, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'part', 'mag', 'mt', 'on', 'flip', '6', 'run', string(indx_run));%Achtung, checken warum BIDS hier scheiße baut
+                        else
+                            searchmask_TB1= fullfile(data_path, subj, ses_label{indx_run}, 'corrected_fmap', '*B1map.nii');
+                            fileTB1=dir(searchmask_TB1);
+                            searchmask_B1= fullfile(data_path, subj, ses_label{indx_run}, 'corrected_fmap', '*B1ref*.nii');
+                            fileB1=dir(searchmask_B1);
+                            all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
+                
+                            PDw_maps_path=bids.query(BIDS, 'data', 'ses', ses{1}, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'part', 'mag', 'mt', 'off', 'flip', '6', 'rec', 'ND');
+                            T1w_maps_path=bids.query(BIDS, 'data', 'ses', ses{1}, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'part', 'mag', 'mt', 'off', 'flip', '21',  'rec', 'ND');
+                            MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses{1}, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'part', 'mag', 'mt', 'on', 'flip', '6', 'rec', 'ND'); %Achtung, checken warum BIDS hier scheiße baut
+                         end
+
+                 end
+
+                % Clean up the data so lovely SPM can work with them
+                for i=1:length(PDw_maps_path)
+                    PDw_maps_path{i}=[PDw_maps_path{i}, ',1'];      %Warum auch immer braucht spm dieses ',1' am Ende, ansonsten gibt es einen Error
+                    T1w_maps_path{i}=[T1w_maps_path{i}, ',1'];
+                end
+                % for i=1:length(MTw_maps_path)
+                %     MTw_maps_path{i}=[MTw_maps_path{i}, ',1'];
+                % end
+
+                all_B1_maps_path{1}=[all_B1_maps_path{1}, ',1'];
+                all_B1_maps_path{2}=[all_B1_maps_path{2}, ',1'];
+                if analysisParameters.useDenoising
+                        inputs{1, indx_run} = {outputDirDenoising};     % Denoising: Output directory - cfg_files
+                        inputs{2, indx_run} = PDw_maps_path;            % Denoising: Magnitude input - cfg_files
+                        inputs{3, indx_run} = T1w_maps_path;            % Denoising: Magnitude input - cfg_files
+                        inputs{4, indx_run} = T2w_maps_path;            % Denoising: Magnitude input - cfg_files
+                        inputs{5, indx_run} = {outputDir};              % Create hMRI maps: Output directory - cfg_files
+                        inputs{6, indx_run} = all_B1_maps_path;         % Create hMRI maps: B1 input - cfg_files
+                        inputs{7, indx_run} = scalingFactor;            % Create hMRI maps: Scaling factor - cfg_entry
+                else
+                        inputs{1, indx_run} = {outputDir};              % Create hMRI maps: Output directory - cfg_files
+                        inputs{2, indx_run} = all_B1_maps_path;         % Create hMRI maps: B1 input - cfg_files
+                        inputs{3, indx_run} = scalingFactor;            % Create hMRI maps: Scaling factor - cfg_entry
+                        inputs{4, indx_run} = PDw_maps_path;            % Create hMRI maps: PD images - cfg_files
+                        inputs{5, indx_run} = T1w_maps_path;            % Create hMRI maps: T1 images - cfg_files
+                        inputs{6, indx_run} = T2w_maps_path;            % Create hMRI maps: T2 images - cfg_files
+                end
+             end
+            spm('defaults', 'FMRI');
+            spm_jobman('run', jobs, inputs{:}); %
+        clear inputs
+  
+    end
+end

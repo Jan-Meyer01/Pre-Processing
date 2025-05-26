@@ -1,0 +1,2 @@
+# Matlab Pipeline for MPM calculation
+First, you need to change the five paths in `MPM_estimation_main.m` to your SPM, hMRI and BIDS installations as well as in and output directories.
