@@ -58,14 +58,14 @@ for subject in args.subject:
                 T1 = volume
             elif basename(nifti_file_path).find('T2s') != -1: 
                 T2star = volume  
-                T2 = volume 
+                T2 = volume+10      # add 10ms to the T2 sample
             elif basename(nifti_file_path).find('T2') != -1: 
                 T2 = volume 
             elif basename(nifti_file_path).find('R1') != -1: 
                 R1 = volume
             elif basename(nifti_file_path).find('R2s') != -1: 
                 R2star = volume  
-                R2 = volume 
+                R2 = volume+0.1     # add 1/10ms to R2 sample
             elif basename(nifti_file_path).find('R2') != -1: 
                 R2 = volume 
 

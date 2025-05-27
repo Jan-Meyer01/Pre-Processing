@@ -56,7 +56,7 @@ for subject in args.subject:
                 T1 = volume
             elif basename(nifti_file_path).find('T2s') != -1: #_OLS_cleaned_stripped_outlierRemoved
                 T2star = volume  
-                T2 = volume 
+                T2 = volume+10      # add 10ms to the T2 sample
             #elif basename(nifti_file_path).find('T2') != -1: #_cleaned_stripped_outlierRemoved
             #    T2 = volume 
 

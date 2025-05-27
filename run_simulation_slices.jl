@@ -2,11 +2,26 @@ using KomaMRI, CUDA, MRIReco, NIfTI
 
 # Script to simulate multiple slices and store them into a single 3D nifti image afterwards
 
+# Auxiliary function for reconstruction
+function reconstruct_2d_image(raw::RawAcquisitionData)
+    acqData = AcquisitionData(raw)
+    acqData.traj[1].circular = false                            # Removing circular window
+    C = maximum(2*abs.(acqData.traj[1].nodes[:]))               # Normalize k-space to -.5 to .5 for NUFFT
+    acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ C
+    Nx, Ny = raw.params["reconSize"][1:2]
+    recParams = Dict{Symbol,Any}()
+    recParams[:reconSize] = (Nx, Ny)
+    recParams[:densityWeighting] = true
+    rec = reconstruction(acqData, recParams)
+    image3d  = reshape(rec.data, Nx, Ny, :)
+    image2d = (abs.(image3d) * prod(size(image3d)[1:2]))[:,:,1]
+    return image2d
+end
+
 # Define scanner and sequence
 sys = Scanner()
-seq = read_seq("/home/janmeyer/KomaSimulations/Sequences/epi_comparisonKoma.seq")
+seq = read_seq("/home/janmeyer/KomaSimulations/Sequences/EPI_SE.seq")
 #seq = read_seq("/home/janmeyer/KomaSimulations/Sequences/EPI_SE.seq")
-
 
 # Define simulation parameters and add the GPU device (number 0 on the server)
 sim_params = KomaMRICore.default_sim_params() 
@@ -15,7 +30,7 @@ sim_params["gpu_device"] = 0
 
 # define phantom name and slice numbers
 phantom_name = "sub-tle001_MPM"
-slice_num = range(start=50,stop=60,step=1)
+slice_num = range(start=20,stop=155,step=1)
 
 # set target folder for raw signal and reconstructed image 
 target_folder = "/home/janmeyer/KomaSimulations/Simulations/"*phantom_name*"_EPI_ComparisonJEMRIS/"
@@ -57,22 +72,6 @@ niwrite(target_folder*phantom_name*"_imageKoma.nii", image_nii)
 #export_2_mat(seq, obj, sys, file, rec_params, image, target_folder; type="custom", matfilename=phantom_name)
 
 
-
-# Auxiliary function for reconstruction
-function reconstruct_2d_image(raw::RawAcquisitionData)
-    acqData = AcquisitionData(raw)
-    acqData.traj[1].circular = false                            # Removing circular window
-    C = maximum(2*abs.(acqData.traj[1].nodes[:]))               # Normalize k-space to -.5 to .5 for NUFFT
-    acqData.traj[1].nodes = acqData.traj[1].nodes[1:2,:] ./ C
-    Nx, Ny = raw.params["reconSize"][1:2]
-    recParams = Dict{Symbol,Any}()
-    recParams[:reconSize] = (Nx, Ny)
-    recParams[:densityWeighting] = true
-    rec = reconstruction(acqData, recParams)
-    image3d  = reshape(rec.data, Nx, Ny, :)
-    image2d = (abs.(image3d) * prod(size(image3d)[1:2]))[:,:,1]
-    return image2d
-end
 
 # functions for exporting to Matlab 
 function export_2_mat_sequence(seq, matfolder; matfilename="seq_sequence.mat")

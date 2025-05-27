@@ -92,8 +92,8 @@ def data_cleaning(vol, replacement_value=0):
     Set negative, NaN and inf values from a given 3D volume [np.array] to a replacement value [int or float].
     '''
 
-    # zero out negative values
-    vol[vol < 0] = replacement_value
+    # zero out negative values (not quite 0, but 0.0001 in case of inversion)
+    vol[vol < 0] = 0.0001 #replacement_value
     # NaN values
     vol[np.isnan(vol)] = replacement_value
     # and inf values

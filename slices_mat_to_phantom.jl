@@ -50,12 +50,12 @@ for subject in subjects
         # turn into grid points
         x_grid, y_grid = x .+ y'*0, x*0 .+ y'
 
-        # get data and flatten the arrays
-        M0 = [(data["M0"]...)...]
-        T1 = [(data["T1"]...)...]
-        T2 = [(data["T2"]...)...]
-        T2s = [(data["T2s"]...)...]
-        DB = [(data["DB"]...)...]
+        # get data, flatten the arrays and convert from ms back to s
+        M0 = [(data["M0"]...)...]/1000
+        T1 = [(data["T1"]...)...]/1000
+        T2 = [(data["T2"]...)...]/1000
+        T2s = [(data["T2s"]...)...]/1000
+        DB = [(data["DB"]...)...]/1000
 
         # define the phantom
         obj = Phantom{Float64}(
