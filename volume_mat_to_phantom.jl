@@ -55,11 +55,12 @@ for subject in subjects
     x = [(x_grid...)...]
     y = [(y_grid...)...]
     z = [(z_grid...)...]
-    M0 = [(data["M0"]...)...]
-    T1 = [(data["T1"]...)...]
-    T2 = [(data["T2"]...)...]
-    T2s = [(data["T2s"]...)...]
-    DB = [(data["DB"]...)...]
+    # convert back from ms to s
+    M0 = [(data["M0"]...)...]/1000
+    T1 = [(data["T1"]...)...]/1000
+    T2 = [(data["T2"]...)...]/1000
+    T2s = [(data["T2s"]...)...]/1000
+    DB = [(data["DB"]...)...]/1000
 
     # define the phantom
     obj = Phantom{Float64}(

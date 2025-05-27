@@ -82,7 +82,28 @@ for subject in args.subject:
 
     assert M0.shape == T1.shape == T2star.shape == T2.shape
 
+    # get indexes of black slices containing only background to remove them from the data
+    indixes_x = []
+    indixes_y = []
+    indixes_z = []
+    for i in range(M0.shape[0]):
+        if np.max(M0[i,:,:])>0:
+            indixes_x.append(i)
+    for i in range(M0.shape[1]):
+        if np.max(M0[:,i,:])>0:
+            indixes_y.append(i)
+    for i in range(M0.shape[2]):
+        if np.max(M0[:,:,i])>0:
+            indixes_z.append(i)
+    # find smallest and largest index for every dimension
+    index_min_x = min(indixes_x)
+    index_max_x = max(indixes_x)
+    index_min_y = min(indixes_y)
+    index_max_y = max(indixes_y)
+    index_min_z = min(indixes_z)
+    index_max_z = max(indixes_z)
+
     # save all the MPMs in a single .mat file
     save_name = 'sub-tle{}_MPM.mat'.format(subject)
     print('saved values as {}'.format(save_name))
-    savemat(join(target_folder, save_name), {'M0':M0,'T1':T1,'T2s':T2star,'T2':T2,'DB':db,'OFFSET':offset,'RES':RES,'RESOS':RESOS,'Shape':M0.shape}) 
+    savemat(join(target_folder, save_name), {'M0':M0[index_min_x:index_max_x,index_min_y:index_max_y,index_min_z:index_max_z],'T1':T1[index_min_x:index_max_x,index_min_y:index_max_y,index_min_z:index_max_z],'T2s':T2star[index_min_x:index_max_x,index_min_y:index_max_y,index_min_z:index_max_z],'T2':T2[index_min_x:index_max_x,index_min_y:index_max_y,index_min_z:index_max_z],'DB':db[index_min_x:index_max_x,index_min_y:index_max_y,index_min_z:index_max_z],'OFFSET':offset,'RES':RES,'RESOS':RESOS,'Shape':M0[index_min_x:index_max_x,index_min_y:index_max_y,index_min_z:index_max_z].shape}) 
