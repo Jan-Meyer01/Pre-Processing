@@ -7,7 +7,7 @@ import numpy as np
 import time
 
 # custom imports
-from utils import is_image_file, process_and_convert_R_to_T_travelling_head, process_and_convert_T_to_R_travelling_head
+from utils import is_image_file, process_and_convert_R_to_T_travelling_head, process_and_convert_T_to_R_travelling_head, clip_outliers
 
 '''
 Script for pre-processing the MPM and T2 data from the travelling head study
@@ -23,7 +23,7 @@ input_dir=args.input_dir
 output_dir=join(".","processed_data","travelling_head")
 
 # read and recreating the BIDS structure of the travelling head data, then process the found nifti images
-print('Started processing at ', time.strftime("%H:%M:%S", time.localtime()))  
+#print('Started processing at ', time.strftime("%H:%M:%S", time.localtime()))  
 
 # get sites
 sites = [f.name for f in scandir(input_dir)]
@@ -99,14 +99,18 @@ for site in sites:
             
             # check whether images and brain mask exist
             if type(PD_image) == type(None):
-                print('Warning: No PD image found in ',input_path) 
+                print('Warning: No PD image found in ',input_path,' !!') 
             if type(R1_image) == type(None):
-                print('Warning: No R1 image found in ',input_path)
+                print('Warning: No R1 image found in ',input_path,' !!')
             if type(R2star_image) == type(None):
-                print('Warning: No R2* image found in ',input_path) 
+                print('Warning: No R2* image found in ',input_path,' !!') 
             if type(T2_image) == type(None):
-                print('Warning: No T2 image found in ',input_path) 
-            assert type(brain_mask) != type(None); 'Error: No brain mask found in {}'.format(input_path)
+                print('Warning: No T2 image found in ',input_path,' !!') 
+            assert type(brain_mask) != type(None), 'No brain mask found in {} !!'.format(input_path)
+
+            # check if mask is not zero for all voxels 
+            if np.sum(np.sum(brain_mask))==0:
+                print('Warning: Empty brain mask in ',input_path,' --> Check your data and masks again!!')
             
             # process PD
             if type(PD_image) != type(None):
@@ -114,8 +118,12 @@ for site in sites:
                 PD_image[PD_image<0] = 0
                 PD_image[PD_image==inf] = 0
                 PD_image[np.isnan(PD_image)] = 0
-                # extract brain from PD image and save it
+                
+                # extract brain from PD image and clip outliers
                 PD_image[brain_mask==0] = 0
+                PD_image = clip_outliers(vol=PD_image,threshold=0.999)
+
+                # save the PD map
                 save_vol = nib.Nifti1Image(PD_image, PD_affine) 
                 save_name = join(output_dir, site, subject, session, basename(PD_path))
                 nib.save(save_vol, save_name)
@@ -125,7 +133,9 @@ for site in sites:
                 # get processed R1 image and converted T1 image
                 R1_image, T1_image = process_and_convert_R_to_T_travelling_head(R_image=R1_image, brain_mask=brain_mask, cutoff=0.075)
 
-                # TODO: remove outliers from images
+                # clip outliers (empirical values)
+                R1_image = clip_outliers(vol=R1_image,threshold=0.9975)
+                T1_image = clip_outliers(vol=T1_image,threshold=0.99)
                 
                 # save the R1 map
                 save_vol  = nib.Nifti1Image(R1_image, R1_affine) 
@@ -142,7 +152,9 @@ for site in sites:
                 # get processed R2* image and converted T2* image
                 R2star_image, T2star_image = process_and_convert_R_to_T_travelling_head(R_image=R2star_image, brain_mask=brain_mask, cutoff=0.025)
                 
-                # TODO: remove outliers from images
+                # clip outliers 
+                R2star_image = clip_outliers(vol=R2star_image,threshold=0.985)
+                T2star_image = clip_outliers(vol=T2star_image,threshold=0.98)
 
                 # save the R2* map
                 save_vol  = nib.Nifti1Image(R2star_image, R2star_affine) 
@@ -160,7 +172,7 @@ for site in sites:
                 T2_image, R2_image = process_and_convert_T_to_R_travelling_head(T_image=T2_image, brain_mask=brain_mask)
             
                 # TODO: remove outliers from images
-                
+
                 # save the T2 map
                 save_vol  = nib.Nifti1Image(T2_image, T2_affine) 
                 save_name = join(output_dir, site, subject, session, basename(T2_path))
@@ -171,4 +183,4 @@ for site in sites:
                 save_name = join(output_dir, site, subject, session, basename(T2_path).replace("T2.nii", "R2.nii"))
                 nib.save(save_vol, save_name)
 
-print('Finished processing at ', time.strftime("%H:%M:%S", time.localtime()))  
+#print('Finished processing at ', time.strftime("%H:%M:%S", time.localtime()))  

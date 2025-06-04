@@ -52,24 +52,33 @@ def process_and_convert_R_to_T_travelling_head(R_image, brain_mask, cutoff):
     Expects an R map [np.array] and brain mask [np.array] with the same size as well as a cutoff for the thresholding
     Returns both the processed R map [np.array] and the converted T map [np.array] (same size as the inputs)
     '''
-    # set negative and inf values to NaN
-    R_image[R_image<0]    = np.NaN
-    R_image[R_image==inf] = np.NaN
+    
     # convert from R to T using a copy of the volume
-    R_image_convert = R_image
+    T_image = R_image
+        
     # thresholding for feasable values (we know which T values to expect in human tissue)
-    R_image_convert[R_image_convert<cutoff] = np.NaN
+    T_image[T_image<cutoff] = np.NaN
+    
     # invert the map
-    R_image_convert = 1/R_image_convert
+    T_image = 1/T_image
     # scale because values in ms are needed for JEMRIS simulation
     #volume = volume * 1000
+    
     # remove NaN values after conversion
-    R_image_convert[np.isnan(R_image_convert)] = 0
+    T_image[np.isnan(T_image)] = 1/cutoff
+
+    # set negative and inf values to 0
+    R_image[np.isnan(R_image)] = 0
+    R_image[R_image<0]    = 0
+    #R_image[R_image==inf] = 0
+    T_image[T_image<0]    = 0
+    #T_image[T_image==inf] = 0
+    
     # extract the brain from the images
     R_image[brain_mask==0] = 0
-    R_image_convert[brain_mask==0] = 0
+    T_image[brain_mask==0] = 0
 
-    return R_image, R_image_convert
+    return R_image, T_image
 
 def process_and_convert_T_to_R_travelling_head(T_image, brain_mask, cutoff):
     '''
