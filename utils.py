@@ -1,4 +1,4 @@
-from os import walk, scandir, access, X_OK, environ, getenv, pathsep
+from os import walk, scandir, access, X_OK, environ, getenv, pathsep, mkdir
 from os.path import join, isdir, islink, isfile, split
 import numpy as np
 from numpy import inf
@@ -44,6 +44,57 @@ def get_image_paths(dir, contrasts):
                     if path.find(contrast) != -1:
                         images_paths.append(path)
     return images_paths
+
+## helper functions for processing and converting travelling head R and T maps
+def process_and_convert_R_to_T_travelling_head(R_image, brain_mask, cutoff):
+    '''
+    Function for processing and converting R maps to T maps for the travelling head dataset
+    Expects an R map [np.array] and brain mask [np.array] with the same size as well as a cutoff for the thresholding
+    Returns both the processed R map [np.array] and the converted T map [np.array] (same size as the inputs)
+    '''
+    # set negative and inf values to NaN
+    R_image[R_image<0]    = np.NaN
+    R_image[R_image==inf] = np.NaN
+    # convert from R to T using a copy of the volume
+    R_image_convert = R_image
+    # thresholding for feasable values (we know which T values to expect in human tissue)
+    R_image_convert[R_image_convert<cutoff] = np.NaN
+    # invert the map
+    R_image_convert = 1/R_image_convert
+    # scale because values in ms are needed for JEMRIS simulation
+    #volume = volume * 1000
+    # remove NaN values after conversion
+    R_image_convert[np.isnan(R_image_convert)] = 0
+    # extract the brain from the images
+    R_image[brain_mask==0] = 0
+    R_image_convert[brain_mask==0] = 0
+
+    return R_image, R_image_convert
+
+def process_and_convert_T_to_R_travelling_head(T_image, brain_mask, cutoff):
+    '''
+    Function for processing and converting T maps to R maps for the travelling head dataset
+    Expects an T map [np.array] and brain mask [np.array] with the same size as well as a cutoff for the thresholding
+    Returns both the processed T map [np.array] and the converted R map [np.array] (same size as the inputs)
+    '''
+    # set negative and inf values to NaN
+    T_image[T_image<0]    = np.NaN
+    T_image[T_image==inf] = np.NaN
+    # convert from T to R using a copy of the volume
+    T_image_convert = T_image
+    # thresholding for feasable values (we know which T values to expect in human tissue)
+    T_image_convert[T_image_convert<cutoff] = np.NaN
+    # invert the map
+    T_image_convert = 1/T_image_convert
+    # scale because values in ms are needed for JEMRIS simulation
+    #volume = volume * 1000
+    # remove NaN values after conversion
+    T_image_convert[np.isnan(T_image_convert)] = 0
+    # extract the brain from the images
+    T_image[brain_mask==0] = 0
+    T_image_convert[brain_mask==0] = 0
+
+    return T_image, T_image_convert
 
 
 ## helper scripts for performing the image pre-processing

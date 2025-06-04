@@ -13,15 +13,16 @@ The folder structure used by the command/scripts in the sections below is as fol
 │           ├── sub-tle001_ses-preop_acq-mpmFlash1_rec-loraks_echo-1_flip-6_mt-off_part-mag_MPM_RFSC_R2s_OLS.nii
 │           ├── sub-tle001_ses-preop_acq-mpmFlash1_rec-loraks_echo-1_flip-6_mt-off_part-mag_MPM_RFSC_T1.nii
 │           └── sub-tle001_ses-preop_acq-mpmFlash1_rec-loraks_echo-1_flip-6_mt-off_part-mag_MPM_RFSC_T2s_OLS.nii
-│   └── TravellingHead
-│       └── MPM
-│           ├── brain_mask_sub-phy001.nii
-│           ├── sub-phy001_ses-001_acq-dznbneep3dUP_run-1_echo-1_PDw.nii.gz
-│
-│           ├── sub-tle001_ses-preop_acq-mpmFlash1_rec-loraks_echo-1_flip-6_mt-off_part-mag_MPM_RFSC_R1.nii
-│           ├── sub-tle001_ses-preop_acq-mpmFlash1_rec-loraks_echo-1_flip-6_mt-off_part-mag_MPM_RFSC_R2s_OLS.nii
-│           ├── sub-tle001_ses-preop_acq-mpmFlash1_rec-loraks_echo-1_flip-6_mt-off_part-mag_MPM_RFSC_T1.nii
-│           └── sub-tle001_ses-preop_acq-mpmFlash1_rec-loraks_echo-1_flip-6_mt-off_part-mag_MPM_RFSC_T2s_OLS.nii
+│   └── travelling_head
+│       └── site
+│           ├── sub-phy001
+│               ├── ses-001
+│                   ├── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_PD.nii
+│                   ├── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_R1.nii
+│                   ├── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_R2_OLS.nii
+│                   ├── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_T1.nii
+│                   ├── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_T2_OLS.nii
+│                   └── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_T2.nii
 │
 ├── slices
 │   └── TLE
@@ -116,21 +117,10 @@ Finally, if we want to use the data for a JEMRIS phantom, we need to save all of
 ```
 
 ## Example workflow for the travelling head study data
-We start again with data cleaning of the PD maps.
+For the travelling head study there is a joint script for the whole processing chain up to the phantom generation. You only need to input the path to your quantitative maps and the script will automatically generate the correct folder structure for you. Note that you need to be in the main folder for the following command to work properly.
 
 ```
-/home/janmeyer/miniconda3/envs/PyTorch/bin/python /home/janmeyer/Pre-Processing/data_cleaner.py -r /projects/crunchie/Jan/Daten/DataTravellingHeadStudy/Bonn_Magnetom_7T/sub-phy -f /ses-001/anat -o /home/janmeyer/Pre-Processing/processed_data/TravellingHead/MPM -c PD -s 001 002 003 004
-```
-
-We then need to skull-strip one PD volume per subject and afterwards rename these volumes and apply the mask to the other PD maps.
-
-```
-export FREESURFER_HOME=~/freesurfer
-source $FREESURFER_HOME/SetUpFreeSurfer.sh
-
-mri_synthstrip -i /home/janmeyer/Pre-Processing/processed_data/TravellingHead/MPM/sub-phy001_ses-001_acq-dznbneep3dUP_run-1_echo-1_part-phase_PDw.nii.gz -o /home/janmeyer/Pre-Processing/processed_data/TravellingHead/MPM/sub-phy001_ses-001_acq-dznbneep3dUP_run-1_echo-1_part-phase_PDw_strip.nii.gz -m /home/janmeyer/Pre-Processing/processed_data/TravellingHead/MPM/brain_mask_sub-phy001.nii
-
-/home/janmeyer/miniconda3/envs/PyTorch/bin/python /home/janmeyer/Pre-Processing/apply_mask.py -i /home/janmeyer/Pre-Processing/processed_data/TravellingHead/MPM -m /home/janmeyer/Pre-Processing/processed_data/TravellingHead/MPM/brain_mask_sub-phy -c PD -s 001 002 005
+python process_travelling_head_data.py -i /projects/crunchie/Jan/Daten/DataTravellingHeadStudy/MPMs
 ```
 
 
