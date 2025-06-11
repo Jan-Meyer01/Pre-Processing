@@ -5,6 +5,7 @@ import argparse
 from numpy import inf
 import numpy as np
 import time
+import SimpleITK
 
 # custom imports
 from utils import is_image_file, process_and_convert_R_to_T_travelling_head, process_and_convert_T_to_R_travelling_head, clip_outliers
@@ -16,11 +17,12 @@ Script for pre-processing the MPM and T2 data from the travelling head study
 # parse in and out folders through the command line
 p = argparse.ArgumentParser(description='Script for pre-processing the MPM and T2 data from the travelling head study.')
 p.add_argument('-i', '--input_dir', type=str, default="/projects/crunchie/Jan/Daten/DataTravellingHeadStudy/MPMs", help='input directory where all the data is stored in a BIDS file structure.') # required=True,
+p.add_argument('-o', '--output_dir', type=str, default="/home/janmeyer/Pre-Processing/processed_data/travelling_head", help='output directory where the BIDS file structure will be established.') # required=True,
 args = p.parse_args()
 
-# get files from the input directory and define output directory to recreate BIDS structure under ./processed_data/travelling_head
+# get files from the input directory and recreate BIDS structure in the output directory
 input_dir=args.input_dir
-output_dir=join(".","processed_data","travelling_head")
+output_dir=args.output_dir
 
 # read and recreating the BIDS structure of the travelling head data, then process the found nifti images
 #print('Started processing at ', time.strftime("%H:%M:%S", time.localtime()))  
@@ -90,12 +92,21 @@ for site in sites:
                         R2star_image  = nib.load(file).get_fdata()
                         R2star_affine = nib.load(file).affine
                         R2star_path   = file
-                    elif file.endswith('T2.nii'):
+                    elif file.endswith('brainmask.nii'):
+                        brain_mask = nib.load(file).get_fdata()
+                    # overwrite generated T2 and R2 maps with SimpleITK as they have a problem when trying to open them with nibabel
+                    elif file.endswith('T2_map.nii.gz'):
+                        tmp = SimpleITK.ReadImage(file)
+                        SimpleITK.WriteImage(tmp, file)
                         T2_image  = nib.load(file).get_fdata()
                         T2_affine = nib.load(file).affine
                         T2_path   = file
-                    elif file.endswith('brainmask.nii'):
-                        brain_mask = nib.load(file).get_fdata()
+                    elif file.endswith('R2_map.nii.gz'):
+                        tmp = SimpleITK.ReadImage(file)
+                        SimpleITK.WriteImage(tmp, file)
+                        R2_image  = nib.load(file).get_fdata()
+                        R2_affine = nib.load(file).affine
+                        R2_path   = file
             
             # check whether images and brain mask exist
             if type(PD_image) == type(None):
@@ -105,13 +116,15 @@ for site in sites:
             if type(R2star_image) == type(None):
                 print('Warning: No R2* image found in ',input_path,' !!') 
             if type(T2_image) == type(None):
-                print('Warning: No T2 image found in ',input_path,' !!') 
+                print('Warning: No T2 image found in ',input_path,' !!')  
+            if type(R2_image) == type(None):
+                print('Warning: No R2 image found in ',input_path,' !!')  
             assert type(brain_mask) != type(None), 'No brain mask found in {} !!'.format(input_path)
 
             # check if mask is not zero for all voxels 
             if np.sum(np.sum(brain_mask))==0:
                 print('Warning: Empty brain mask in ',input_path,' --> Check your data and masks again!!')
-            
+            """
             # process PD
             if type(PD_image) != type(None):
                 # set negative, inf and NaN values to 0
@@ -165,22 +178,35 @@ for site in sites:
                 save_vol  = nib.Nifti1Image(T2star_image, R2star_affine) 
                 save_name = join(output_dir, site, subject, session, basename(R2star_path).replace("R2s_OLS.nii", "T2s_OLS.nii"))
                 nib.save(save_vol, save_name)
-            
-            # process T2 image and create R2 just in case
+            """
+            # process and save T2 image 
             if type(T2_image) != type(None):
-                # get processed T2 image and converted R2 image
-                T2_image, R2_image = process_and_convert_T_to_R_travelling_head(T_image=T2_image, brain_mask=brain_mask)
-            
-                # TODO: remove outliers from images
+                # clean images, but no masking required as they are already skull-stripped
+                T2_image[T2_image<0] = 0
+                T2_image[T2_image==inf] = 0
+                T2_image[np.isnan(T2_image)] = 0
+
+                # clip outliers
+                T2_image = clip_outliers(vol=T2_image,threshold=0.99)
 
                 # save the T2 map
                 save_vol  = nib.Nifti1Image(T2_image, T2_affine) 
                 save_name = join(output_dir, site, subject, session, basename(T2_path))
                 nib.save(save_vol, save_name)
-                
-                # save the R2 map (just use the affine from T2...)
-                save_vol  = nib.Nifti1Image(R2_image, T2_affine) 
-                save_name = join(output_dir, site, subject, session, basename(T2_path).replace("T2.nii", "R2.nii"))
+
+            # process and save R2 image
+            if type(R2_image) != type(None):   
+                # clean images, but no masking required as they are already skull-stripped
+                R2_image[R2_image<0] = 0
+                R2_image[R2_image==inf] = 0
+                R2_image[np.isnan(R2_image)] = 0
+
+                # clip outliers
+                R2_image = clip_outliers(vol=R2_image,threshold=0.99)
+                 
+                # save the R2 map 
+                save_vol  = nib.Nifti1Image(R2_image, R2_affine) 
+                save_name = join(output_dir, site, subject, session, basename(R2_path))
                 nib.save(save_vol, save_name)
 
 #print('Finished processing at ', time.strftime("%H:%M:%S", time.localtime()))  
