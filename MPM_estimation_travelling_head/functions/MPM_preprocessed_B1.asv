@@ -25,7 +25,7 @@ function MPM_preprocessed_B1(analysisParameters, site, subjects, mainPath, p_out
 
         %We want: iteration over two sessions (ses-001 & ses-002) for Kings, only ses-001 for Bonn and Hamburg
         %         1 run for all the subjects in Kings, but 2 for phy001 in Bonn and Hamburg (scan-rescan)
-warning('mit etwas besserer Structur der NIFTIS kann man sich hier sehr viel Code sparen')
+        warning('mit etwas besserer Structur der NIFTIS kann man sich hier sehr viel Code sparen')
 
         %Define session-label
         if contains(site, 'Hamburg') 
@@ -37,7 +37,7 @@ warning('mit etwas besserer Structur der NIFTIS kann man sich hier sehr viel Cod
                 ses_label{indx_ses} = ['ses-' ses{indx_ses}];
             end
         end
-      %Should be 1 for Hamburg and Bonn, but ses-001 & ses-002 for Kings
+        %Should be 1 for Hamburg and Bonn, but ses-001 & ses-002 for Kings
 
         %amount of runs (sessions)
         nrun=length(ses); %!! Generally it should be always 1(because scan-rescan is in the same session, except for Kings
@@ -112,29 +112,53 @@ warning('mit etwas besserer Structur der NIFTIS kann man sich hier sehr viel Cod
                      if strcmp(subj, 'sub-phy001')
                         run = ['run-' num2str(indx_run)];   %For phy001 both B1 maps (scan & rescan are saved in the same folder
                         % B1 map
-                        searchmask_TB1= fullfile(data_path, subj, ses_label{1}, 'fmap', ['*' run '*B1map.nii']); %Only ses-001 for this data exist containing both datasets
+                        searchmask_TB1= fullfile(data_path, subj, ses_label{1}, 'corrected_fmap', ['*' run '*B1map.nii']); %Only ses-001 for this data exist containing both datasets
                         fileTB1=dir(searchmask_TB1);
-                        searchmask_B1= fullfile(data_path, subj, ses_label{1}, 'fmap', ['*B1Ref*' run '*.nii']);
+                        searchmask_B1= fullfile(data_path, subj, ses_label{1}, 'corrected_fmap', ['*B1ref*' run '*.nii']);
                         fileB1=dir(searchmask_B1);
                         all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
                         % MPM data
-                        results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii.gz', 'acq', acqname_anat{1}, 'part', '', 'run', indx_run);
+                        results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', '', 'run', indx_run);
+                        MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{2}, 'part', 'mag', 'run', indx_run,'mt','on','flip','6');
                         PDw_maps_path=results_bids_query(contains(results_bids_query,'PDw'));
                         T1w_maps_path=results_bids_query(contains(results_bids_query,'T1w'));
-                        T2w_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', 'mag', 'run', indx_run);
+                        
+                        % old...
+                        % % B1 map
+                        % searchmask_TB1= fullfile(data_path, subj, ses_label{1}, 'fmap', ['*' run '*B1map.nii']); %Only ses-001 for this data exist containing both datasets
+                        % fileTB1=dir(searchmask_TB1);
+                        % searchmask_B1= fullfile(data_path, subj, ses_label{1}, 'fmap', ['*B1Ref*' run '*.nii']);
+                        % fileB1=dir(searchmask_B1);
+                        % all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
+                        % % MPM data
+                        % results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', '', 'run', indx_run);
+                        % PDw_maps_path=results_bids_query(contains(results_bids_query,'PDw'));
+                        % T1w_maps_path=results_bids_query(contains(results_bids_query,'T1w'));
+                        % MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{2}, 'part', 'mag', 'run', indx_run,'mt','on','flip','6');
                         
                      else
-
-                        searchmask_TB1= fullfile(data_path, subj, ses_label{indx_run}, 'fmap', '*B1map.nii.gz');
+                        searchmask_TB1= fullfile(data_path, subj, ses_label{indx_run}, 'corrected_fmap', '*B1map.nii');
                         fileTB1=dir(searchmask_TB1);
-                        searchmask_B1= fullfile(data_path, subj, ses_label{indx_run}, 'fmap', '*B1ref*.nii.gz');
+                        searchmask_B1= fullfile(data_path, subj, ses_label{indx_run}, 'corrected_fmap', '*B1ref*.nii');
                         fileB1=dir(searchmask_B1);
                         all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
                 
-                        results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii.gz', 'acq', acqname_anat{1}, 'part', ''); 
+                        results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', ''); 
                         PDw_maps_path=results_bids_query(contains(results_bids_query,'PDw'));
                         T1w_maps_path=results_bids_query(contains(results_bids_query,'T1w'));
-                        T2w_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', 'mag');
+                        MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{2}, 'part', 'mag','mt','on','flip','6');
+                        
+                        % old...
+                        % searchmask_TB1= fullfile(data_path, subj, ses_label{indx_run}, 'fmap', '*B1map.nii');
+                        % fileTB1=dir(searchmask_TB1);
+                        % searchmask_B1= fullfile(data_path, subj, ses_label{indx_run}, 'fmap', '*B1Ref*.nii');
+                        % fileB1=dir(searchmask_B1);
+                        % all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
+                        % 
+                        % results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', ''); 
+                        % PDw_maps_path=results_bids_query(contains(results_bids_query,'PDw'));
+                        % T1w_maps_path=results_bids_query(contains(results_bids_query,'T1w'));
+                        % MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{2}, 'part', 'mag','mt','on','flip','6');
                         
                      end
 
@@ -171,17 +195,17 @@ warning('mit etwas besserer Structur der NIFTIS kann man sich hier sehr viel Cod
                     PDw_maps_path{i}=[PDw_maps_path{i}, ',1'];      %Warum auch immer braucht spm dieses ',1' am Ende, ansonsten gibt es einen Error
                     T1w_maps_path{i}=[T1w_maps_path{i}, ',1'];
                 end
-                % for i=1:length(MTw_maps_path)
-                %     MTw_maps_path{i}=[MTw_maps_path{i}, ',1'];
-                % end
+                for i=1:length(MTw_maps_path)
+                    MTw_maps_path{i}=[MTw_maps_path{i}, ',1'];
+                end
 
                 all_B1_maps_path{1}=[all_B1_maps_path{1}, ',1'];
                 all_B1_maps_path{2}=[all_B1_maps_path{2}, ',1'];
                 if analysisParameters.useDenoising
                         inputs{1, indx_run} = {outputDirDenoising};     % Denoising: Output directory - cfg_files
-                        inputs{2, indx_run} = PDw_maps_path;            % Denoising: Magnitude input - cfg_files
-                        inputs{3, indx_run} = T1w_maps_path;            % Denoising: Magnitude input - cfg_files
-                        inputs{4, indx_run} = T2w_maps_path;            % Denoising: Magnitude input - cfg_files
+                        inputs{2, indx_run} = MTw_maps_path;            % Denoising: Magnitude input - cfg_files
+                        inputs{3, indx_run} = PDw_maps_path;            % Denoising: Magnitude input - cfg_files
+                        inputs{4, indx_run} = T1w_maps_path;            % Denoising: Magnitude input - cfg_files
                         inputs{5, indx_run} = {outputDir};              % Create hMRI maps: Output directory - cfg_files
                         inputs{6, indx_run} = all_B1_maps_path;         % Create hMRI maps: B1 input - cfg_files
                         inputs{7, indx_run} = scalingFactor;            % Create hMRI maps: Scaling factor - cfg_entry
@@ -189,9 +213,9 @@ warning('mit etwas besserer Structur der NIFTIS kann man sich hier sehr viel Cod
                         inputs{1, indx_run} = {outputDir};              % Create hMRI maps: Output directory - cfg_files
                         inputs{2, indx_run} = all_B1_maps_path;         % Create hMRI maps: B1 input - cfg_files
                         inputs{3, indx_run} = scalingFactor;            % Create hMRI maps: Scaling factor - cfg_entry
-                        inputs{4, indx_run} = PDw_maps_path;            % Create hMRI maps: PD images - cfg_files
-                        inputs{5, indx_run} = T1w_maps_path;            % Create hMRI maps: T1 images - cfg_files
-                        inputs{6, indx_run} = T2w_maps_path;            % Create hMRI maps: T2 images - cfg_files
+                        inputs{4, indx_run} = MTw_maps_path;            % Denoising: MTsat - cfg_files
+                        inputs{5, indx_run} = PDw_maps_path;            % Denoising: PD - cfg_files
+                        inputs{6, indx_run} = T1w_maps_path;            % Denoising: T1 - cfg_files
                 end
              end
             spm('defaults', 'FMRI');

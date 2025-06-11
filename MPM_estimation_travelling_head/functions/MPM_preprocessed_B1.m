@@ -112,29 +112,51 @@ function MPM_preprocessed_B1(analysisParameters, site, subjects, mainPath, p_out
                      if strcmp(subj, 'sub-phy001')
                         run = ['run-' num2str(indx_run)];   %For phy001 both B1 maps (scan & rescan are saved in the same folder
                         % B1 map
-                        searchmask_TB1= fullfile(data_path, subj, ses_label{1}, 'fmap', ['*' run '*B1map.nii']); %Only ses-001 for this data exist containing both datasets
+                        searchmask_TB1= fullfile(data_path, subj, ses_label{1}, 'corrected_fmap', ['*' run '*B1map.nii']); %Only ses-001 for this data exist containing both datasets
                         fileTB1=dir(searchmask_TB1);
-                        searchmask_B1= fullfile(data_path, subj, ses_label{1}, 'fmap', ['*B1Ref*' run '*.nii']);
+                        searchmask_B1= fullfile(data_path, subj, ses_label{1}, 'corrected_fmap', ['*B1ref*' run '*.nii']);
                         fileB1=dir(searchmask_B1);
                         all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
                         % MPM data
-                        results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', '', 'run', indx_run);
-                        PDw_maps_path=results_bids_query(contains(results_bids_query,'PDw'));
-                        T1w_maps_path=results_bids_query(contains(results_bids_query,'T1w'));
                         MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{2}, 'part', 'mag', 'run', indx_run,'mt','on','flip','6');
+                        PDw_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{3}, 'part', 'mag', 'run', indx_run,'mt','off','flip','4');
+                        T1w_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{4}, 'part', 'mag', 'run', indx_run,'mt','off','flip','25');
+                        
+                        % old...
+                        % % B1 map
+                        % searchmask_TB1= fullfile(data_path, subj, ses_label{1}, 'fmap', ['*' run '*B1map.nii']); %Only ses-001 for this data exist containing both datasets
+                        % fileTB1=dir(searchmask_TB1);
+                        % searchmask_B1= fullfile(data_path, subj, ses_label{1}, 'fmap', ['*B1Ref*' run '*.nii']);
+                        % fileB1=dir(searchmask_B1);
+                        % all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
+                        % % MPM data
+                        % results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', '', 'run', indx_run);
+                        % PDw_maps_path=results_bids_query(contains(results_bids_query,'PDw'));
+                        % T1w_maps_path=results_bids_query(contains(results_bids_query,'T1w'));
+                        % MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{2}, 'part', 'mag', 'run', indx_run,'mt','on','flip','6');
                         
                      else
-
-                        searchmask_TB1= fullfile(data_path, subj, ses_label{indx_run}, 'fmap', '*B1map.nii');
+                        searchmask_TB1= fullfile(data_path, subj, ses_label{indx_run}, 'corrected_fmap', '*B1map.nii');
                         fileTB1=dir(searchmask_TB1);
-                        searchmask_B1= fullfile(data_path, subj, ses_label{indx_run}, 'fmap', '*B1Ref*.nii');
+                        searchmask_B1= fullfile(data_path, subj, ses_label{indx_run}, 'corrected_fmap', '*B1ref*.nii');
                         fileB1=dir(searchmask_B1);
                         all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
                 
-                        results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', ''); 
-                        PDw_maps_path=results_bids_query(contains(results_bids_query,'PDw'));
-                        T1w_maps_path=results_bids_query(contains(results_bids_query,'T1w'));
                         MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{2}, 'part', 'mag','mt','on','flip','6');
+                        PDw_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{3}, 'part', 'mag', 'mt','off','flip','4');
+                        T1w_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{4}, 'part', 'mag', 'mt','off','flip','25');
+                        
+                        % old...
+                        % searchmask_TB1= fullfile(data_path, subj, ses_label{indx_run}, 'fmap', '*B1map.nii');
+                        % fileTB1=dir(searchmask_TB1);
+                        % searchmask_B1= fullfile(data_path, subj, ses_label{indx_run}, 'fmap', '*B1Ref*.nii');
+                        % fileB1=dir(searchmask_B1);
+                        % all_B1_maps_path=[{fullfile(fileB1(1).folder, fileB1(1).name)}; {fullfile(fileTB1(1).folder, fileTB1(1).name)}];
+                        % 
+                        % results_bids_query = bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{1}, 'part', ''); 
+                        % PDw_maps_path=results_bids_query(contains(results_bids_query,'PDw'));
+                        % T1w_maps_path=results_bids_query(contains(results_bids_query,'T1w'));
+                        % MTw_maps_path=bids.query(BIDS, 'data', 'ses', ses, 'sub', subj, 'modality', 'anat', 'extension', '.nii', 'acq', acqname_anat{2}, 'part', 'mag','mt','on','flip','6');
                         
                      end
 
