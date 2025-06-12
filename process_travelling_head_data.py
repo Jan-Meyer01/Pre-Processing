@@ -16,12 +16,12 @@ Script for pre-processing the MPM and T2 data from the travelling head study
 
 # parse in and out folders through the command line
 p = argparse.ArgumentParser(description='Script for pre-processing the MPM and T2 data from the travelling head study.')
-p.add_argument('-i', '--input_dir', type=str, default="/projects/crunchie/Jan/Daten/DataTravellingHeadStudy/MPMs", help='input directory where all the data is stored in a BIDS file structure.') # required=True,
-p.add_argument('-o', '--output_dir', type=str, default="/home/janmeyer/Pre-Processing/processed_data/travelling_head", help='output directory where the BIDS file structure will be established.') # required=True,
+p.add_argument('-i', '--input_dir', type=str, required=True, help='input directory where all the data is stored in a BIDS file structure.') 
+p.add_argument('-o', '--output_dir', type=str, default="./processed_data/travelling_head", help='output directory where the BIDS file structure will be established.') 
 args = p.parse_args()
 
 # get files from the input directory and recreate BIDS structure in the output directory
-input_dir=args.input_dir
+input_dir= args.input_dir #"/projects/crunchie/Jan/Daten/DataTravellingHeadStudy/MPMs"
 output_dir=args.output_dir
 
 # read and recreating the BIDS structure of the travelling head data, then process the found nifti images
