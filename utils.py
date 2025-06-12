@@ -9,6 +9,7 @@ import time
 import shlex
 import subprocess
 import sys
+import h5py
 
 ## helper scripts for finding the nifit images in a given folder
 
@@ -44,6 +45,15 @@ def get_image_paths(dir, contrasts):
                     if path.find(contrast) != -1:
                         images_paths.append(path)
     return images_paths
+
+## helper function for saving .h5 files
+def save_HDF5(save_dir,data,offset,resolution):
+    f = h5py.File(save_dir, "w")
+    f.require_group(name='sample')
+    f.create_dataset(name='sample/data', data=data)
+    f.create_dataset(name='sample/offset', data=offset)
+    f.create_dataset(name='sample/resolution', data=resolution)
+    f.close()
 
 ## helper functions for processing and converting travelling head R and T maps
 def process_and_convert_R_to_T_travelling_head(R_image, brain_mask, cutoff):
