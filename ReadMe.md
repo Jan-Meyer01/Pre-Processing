@@ -1,4 +1,82 @@
-# Pre-processing for nifti 3D images
+# Processing of the Travelling Heads Dataset and Conversion into Phantoms for the JEMRIS and KomaMRI Simulation Tools
+
+## Introduction
+The Travelling Heads Study collected data at multiple sites with the goal of comparing and validating the use of quantitative MR imaging methods. In this repository, we use the MPM and T2 data obtained in this study in order to get realistic phantoms to be used for simulations of different imaging sequences.
+
+## Data Structure
+In the study, data from four volunteers was collected...
+
+## Main Workflow
+There are two important scripts that can be executed via the command line to get the processed data and convert it into phantoms for either [JEMRIS](https://www.jemris.org/) or [KomaMRI](https://juliahealth.org/KomaMRI.jl/stable/).
+
+First, we process the data which will create the correct folder structure in this repo:
+
+```
+python process_travelling_head_data.py -i <path_to_data>
+```
+
+There are a couple of options, which you'll need, or might want to, specify:
+- `input_dir`: The input directory where your MPM and T2 data is stored (this needs to be specified!!)
+- `output_dir`: The output directory where the processed data will be stord. By default this will be done in this repository and we advise against changing it as the other scripts expect this directory and additional input would be required there to use a different directory.
+
+Once you have your processed data in your desired folder, you can start to generate the phantoms. There are two scripts for this, one for JEMRIS and one for KomaMRI. Lets start with JEMRIS:
+
+```
+python phantoms_jemris_travelling_head.py
+```
+
+This script has a lot of options, which are quickly explained here:
+- `input_dir`: The input directory where your processed data from the previous step is stored (needs to be the same as the `output_dir` before!!). By default, the phantoms will automatically be stored in a subfolder called `phantoms_jemris` for each subject in this repo or your specified path.
+- `format`: The file format in which the phantoms will be stored. It can either be `.mat` or `.h5`. 
+- `Rmaps`: Directly tied to the format is the option of using either T or R maps. If nothing is specified, T maps will be used, however putting `--Rmaps` or `-R` will generate R maps and this option should only be used with the `.h5` file format to be called with a script as the JEMRIS GUI will complain otherwise.
+- `Slice`: If nothing is specified the whole volume will be used as a phantoms, but using `--Slice` or `-S` slices along the z-axis can be generated in case the volumes are to computationally draining.
+
+The script for KomaMRI is very similar, but is written in [Julia](https://julialang.org), same as the simulatinos tool. The command does not look quite as nice, but it can also be run in the terminal, you just need to change the path to Julia:
+
+```
+/home/janmeyer/.julia/juliaup/julia-1.11.4+0.x64.linux.gnu/bin/julia phantoms_koma_travelling_head.jl  
+```
+
+The options are similar to before:
+- `i`: The input directory where your processed data from the previous step is stored (needs to be the same as the `output_dir` before!!). By default, the phantoms will automatically be stored in a subfolder called `phantoms_koma` for each subject in this repo or your specified path.
+- `s`: If nothing is specified the whole volume will be used as a phantoms, but using the `-s` flag slices along the z-axis can be generated in case the volumes are to computationally draining.
+
+Since there are no other file types for KomaMRI, the other option are not needed. If you followed the commands above using the default values the resulting data structure should look something like this for the first subject (others are the same):
+
+
+```
+├── processed_data
+│   └── travelling_head
+│       └── site (e.g. Bonn_Skyra_3T_LowRes)
+│           ├── sub-phy001
+│               ├── ses-001
+│                   ├──phantoms_jemris
+│                       └── sub-phy001_ses-001_phantom_jemris_vol.mat
+│                   ├──phantoms_koma
+│                       └── sub-phy001_ses-001_phantom_koma_vol.phantom
+│                   ├── R2_map.nii.gz
+│                   ├── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_PD.nii
+│                   ├── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_R1.nii
+│                   ├── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_R2_OLS.nii
+│                   ├── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_T1.nii
+│                   ├── sub-phy001_ses-001_acq-dznebnep3dPDw_run-1_echo-1_flip-4_mt-off_part-mag_MPM_T2_OLS.nii
+│                   └── T2_map.nii.gz
+```
+
+While the naming for the phantoms is somewhat redundant with the folder names, it seemed usefull for a quicker overview as the file names are not that long. The structure for the other subjects is the same and only subject 1 has two sessions due to the rescan.
+
+
+
+
+
+
+
+
+
+# Old Documentation (Remove unnecessary parts later)
+
+
+## Pre-processing for nifti 3D images
 This repository contains code for different processing steps of the TLE and Travelling Head datasets. Please ensure that your data is in the [NIfTI](https://nifti.nimh.nih.gov/) data format as all scripts require this. In case you need to convert your data from DICOM first use e.g. [Bidscoin](https://bidscoin.readthedocs.io/en/latest/) for a [Bids](https://bids-specification.readthedocs.io/en/stable/) conform conversion.
 
 The folder structure used by the command/scripts in the sections below is as follows.
