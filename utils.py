@@ -10,6 +10,8 @@ import shlex
 import subprocess
 import sys
 import h5py
+import nibabel as nib
+from skimage import morphology
 
 ## helper scripts for finding the nifit images in a given folder
 
@@ -115,9 +117,70 @@ def process_and_convert_T_to_R_travelling_head(T_image, brain_mask, cutoff):
 
     return T_image, T_image_convert
 
+def find_replace_R2_T2_inconsistencies(T2_image, T2star_image, R2_image, R2star_image, brain_seg, threshold_T2=0.03, threshold_R2=0):
+    # check for differences betweeen T2* and T2 as well as R2* and R2
+    diff_T2_T2star = T2_image-T2star_image
+    diff_R2_R2star = R2_image-R2star_image
+
+    # ignore positive values for T2 and negative value for R2, then take the absolute value for T2 to make it positive
+    diff_T2_T2star[diff_T2_T2star>0] = 0
+    diff_R2_R2star[diff_R2_R2star<0] = 0
+    diff_T2_T2star = np.abs(diff_T2_T2star)
+
+    # only take values that are within the segmentations to avoid outliers
+    brain_mask = np.zeros_like(brain_seg)
+    brain_mask[brain_seg>0] = 1                  # take all label except background
+    diff_T2_T2star = diff_T2_T2star*brain_mask   # and apply that to the difference masks
+    diff_R2_R2star = diff_R2_R2star*brain_mask   
+
+    # apply histogram based thresholding to get the problematic areas in T2
+    #diff_T2_T2star = threshold_histogram(diff_T2_T2star,threshold)
+    
+    # insert given threshold 
+    diff_T2_T2star[diff_T2_T2star<threshold_T2] = 0
+    diff_R2_R2star[diff_R2_R2star<threshold_R2] = 0
+    diff_T2_T2star[diff_T2_T2star>0] = 1
+    diff_R2_R2star[diff_R2_R2star>0] = 1
+
+    # apply opening to remove small fracments in the diff mask
+    diff_T2_T2star = morphology.opening(diff_T2_T2star)
+    diff_R2_R2star = morphology.opening(diff_R2_R2star)
+    
+    """
+    # for each label in the brain segmentation look for inconsistencies in the data and replace it with the average value
+    for label_num in range(1,int(np.max(brain_seg))):
+        T2_image_tmp = np.zeros_like(T2_image)
+        R2_image_tmp = np.zeros_like(R2_image)
+        
+        # get indices for tissue label and no data inconsistencies
+        indices_brain_seg    = [brain_seg==label_num][0]
+        indices_reference_T2 = [diff_T2_T2star==0][0]
+        indices_reference_R2 = [diff_R2_R2star==0][0]
+        indices_keep = indices_brain_seg.astype(int) * indices_reference_T2.astype(int) * indices_reference_R2.astype(int)
+        T2_image_tmp = T2_image[indices_keep==1]
+        R2_image_tmp = R2_image[indices_keep==1]
+        
+        if T2_image_tmp.size != 0:
+            # get indices for tissue label and data inconsistencies
+            indices_difference_T2 = [diff_T2_T2star==1][0]
+            indices_difference_R2 = [diff_R2_R2star==1][0]
+            indices_replace       = indices_brain_seg.astype(int) * indices_difference_T2.astype(int) * indices_difference_R2.astype(int)
+
+            # get the mean for the tissue label and replace inconsistent values with it
+            mean_value_T2 = np.mean(T2_image_tmp)
+            mean_value_R2 = np.mean(R2_image_tmp)
+            T2_image[indices_replace==1] = mean_value_T2
+            R2_image[indices_replace==1] = mean_value_R2
+    """
+    # scale T2* and R2* to their matching images and use them to replace inconsistent values
+    T2star_image = np.max(T2_image)*(T2star_image/np.max(T2star_image))
+    R2star_image = np.max(T2_image)*(T2star_image/np.max(T2star_image))
+    T2_image[diff_T2_T2star==1] = T2star_image[diff_T2_T2star==1]
+    R2_image[diff_R2_R2star==1] = R2star_image[diff_R2_R2star==1]
+
+    return T2_image, R2_image
 
 ## helper scripts for performing the image pre-processing
-
 def process_volume_data(vol, debug=False):
     '''
     Given a 3D volume [np.array], remove all negative, NaN and inf values, 
@@ -186,8 +249,28 @@ def clip_outliers(vol, threshold=0.9975):
         index += 1
         cumultative_value += hist[index]
 
-    # and remove all values above the indexed bin
+    # and clip all values above the indexed bin
     vol[vol > bin_edges[index]] = bin_edges[index]
+
+    return vol
+
+def threshold_histogram(vol, threshold=0.9975):
+    '''
+    Threshold the histrogram from a given 3D volume [np.array] to remove small values (threshold [float] in percent).
+    '''
+
+    # get histogram of the volume with 100.000 bins for better accuracy
+    hist, bin_edges = np.histogram(np.ndarray.flatten(vol), bins=100000, density=False)
+    index = 0
+    cumultative_value = hist[index]
+    
+    # stop accumulating the bins once the threshold is reached
+    while cumultative_value < np.sum(hist)*threshold:
+        index += 1
+        cumultative_value += hist[index]
+
+    # and remove all values below the indexed bin
+    vol[vol < bin_edges[index]] = 0
 
     return vol
 

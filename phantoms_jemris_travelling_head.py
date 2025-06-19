@@ -6,7 +6,6 @@ from numpy import inf
 import numpy as np
 import time
 from scipy.io import savemat
-import h5py
 
 # custom imports
 from utils import is_image_file, save_HDF5

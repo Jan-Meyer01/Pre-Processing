@@ -8,7 +8,7 @@ import time
 import SimpleITK
 
 # custom imports
-from utils import is_image_file, process_and_convert_R_to_T_travelling_head, process_and_convert_T_to_R_travelling_head, clip_outliers
+from utils import is_image_file, process_and_convert_R_to_T_travelling_head, clip_outliers, find_replace_R2_T2_inconsistencies
 
 '''
 Script for pre-processing the MPM and T2 data from the travelling head study
@@ -72,6 +72,7 @@ for site in sites:
             T2_affine     = None
             T2_path       = None
             brain_mask    = None
+            brain_seg     = None
             
             for file in files:
                 # if the file is a nifti image
@@ -94,6 +95,8 @@ for site in sites:
                         R2star_path   = file
                     elif file.endswith('brainmask.nii'):
                         brain_mask = nib.load(file).get_fdata()
+                    elif file.endswith('brain_segmentation.nii'):
+                        brain_seg  = nib.load(file).get_fdata()                        
                     # overwrite generated T2 and R2 maps with SimpleITK as they have a problem when trying to open them with nibabel
                     elif file.endswith('T2_map.nii.gz'):
                         tmp = SimpleITK.ReadImage(file)
@@ -119,12 +122,14 @@ for site in sites:
                 print('Warning: No T2 image found in ',input_path,' !!')  
             if type(R2_image) == type(None):
                 print('Warning: No R2 image found in ',input_path,' !!')  
+            if type(brain_seg) == type(None):
+                print('Warning: No brain segmentation found in ',input_path,' !!')  
             assert type(brain_mask) != type(None), 'No brain mask found in {} !!'.format(input_path)
 
             # check if mask is not zero for all voxels 
             if np.sum(np.sum(brain_mask))==0:
                 print('Warning: Empty brain mask in ',input_path,' --> Check your data and masks again!!')
-            """
+            
             # process PD
             if type(PD_image) != type(None):
                 # set negative, inf and NaN values to 0
@@ -178,35 +183,32 @@ for site in sites:
                 save_vol  = nib.Nifti1Image(T2star_image, R2star_affine) 
                 save_name = join(output_dir, site, subject, session, basename(R2star_path).replace("R2s_OLS.nii", "T2s_OLS.nii"))
                 nib.save(save_vol, save_name)
-            """
-            # process and save T2 image 
-            if type(T2_image) != type(None):
+            
+            # process and save T2/R2 image (both are generated using the same script so we assume both exist)
+            if type(T2_image) != type(None) and type(brain_seg) != type(None):
                 # clean images, but no masking required as they are already skull-stripped
                 T2_image[T2_image<0] = 0
                 T2_image[T2_image==inf] = 0
                 T2_image[np.isnan(T2_image)] = 0
-
-                # clip outliers
-                T2_image = clip_outliers(vol=T2_image,threshold=0.99)
-
-                # save the T2 map
-                save_vol  = nib.Nifti1Image(T2_image, T2_affine) 
-                save_name = join(output_dir, site, subject, session, basename(T2_path))
-                nib.save(save_vol, save_name)
-
-            # process and save R2 image
-            if type(R2_image) != type(None):   
-                # clean images, but no masking required as they are already skull-stripped
                 R2_image[R2_image<0] = 0
                 R2_image[R2_image==inf] = 0
                 R2_image[np.isnan(R2_image)] = 0
 
                 # clip outliers
+                T2_image = clip_outliers(vol=T2_image,threshold=0.99)
                 R2_image = clip_outliers(vol=R2_image,threshold=0.99)
-                 
+
+                # find and replace inconsistent datapoints for T2 and R2
+                T2_image, R2_image = find_replace_R2_T2_inconsistencies(T2_image,T2star_image,R2_image,R2star_image,brain_seg,0.02,4)
+
+                # save the T2 map
+                save_vol  = nib.Nifti1Image(T2_image, T2_affine) 
+                save_name = join(output_dir, site, subject, session, "{}_{}_".format(subject,session)+basename(T2_path))
+                nib.save(save_vol, save_name)
+
                 # save the R2 map 
                 save_vol  = nib.Nifti1Image(R2_image, R2_affine) 
-                save_name = join(output_dir, site, subject, session, basename(R2_path))
+                save_name = join(output_dir, site, subject, session, "{}_{}_".format(subject,session)+basename(R2_path))
                 nib.save(save_vol, save_name)
 
 #print('Finished processing at ', time.strftime("%H:%M:%S", time.localtime()))  

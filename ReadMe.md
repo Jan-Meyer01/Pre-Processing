@@ -4,7 +4,8 @@
 The Travelling Heads Study collected data at multiple sites with the goal of comparing and validating the use of quantitative MR imaging methods. In this repository, we use the MPM and T2 data obtained in this study in order to get realistic phantoms to be used for simulations of different imaging sequences.
 
 ## Data Structure
-In the study, data from four volunteers was collected...
+In the study, data from four volunteers was collected.
+Brain masks and segmentation also need to exist for the main pipeline.
 
 ## Main Workflow
 There are two important scripts that can be executed via the command line to get the processed data and convert it into phantoms for either [JEMRIS](https://www.jemris.org/) or [KomaMRI](https://juliahealth.org/KomaMRI.jl/stable/).
@@ -29,7 +30,7 @@ This script has a lot of options, which are quickly explained here:
 - `input_dir`: The input directory where your processed data from the previous step is stored (needs to be the same as the `output_dir` before!!). By default, the phantoms will automatically be stored in a subfolder called `phantoms_jemris` for each subject in this repo or your specified path.
 - `format`: The file format in which the phantoms will be stored. It can either be `.mat` or `.h5`. 
 - `Rmaps`: Directly tied to the format is the option of using either T or R maps. If nothing is specified, T maps will be used, however putting `--Rmaps` or `-R` will generate R maps and this option should only be used with the `.h5` file format to be called with a script as the JEMRIS GUI will complain otherwise.
-- `Slice`: If nothing is specified the whole volume will be used as a phantoms, but using `--Slice` or `-S` slices along the z-axis can be generated in case the volumes are to computationally draining.
+- `slice`: If nothing is specified the whole volume will be used as a phantoms, but using `--slice` or `-s` slices along the z-axis can be generated in case the volumes are to computationally draining.
 
 The script for KomaMRI is very similar, but is written in [Julia](https://julialang.org), same as the simulatinos tool. The command does not look quite as nice, but it can also be run in the terminal, you just need to change the path to Julia:
 
