@@ -114,9 +114,9 @@ for site in sites
                     # define the phantom
                     obj = Phantom{Float64}(
                             name = subject*"_"*session*"_slice"*string(slice)*"_phantom_koma",
-                                x = x_grid[M0.!=0],
-                                y = y_grid[M0.!=0],
-                                z = 0*x_grid[M0.!=0],
+                                x = x_grid[M0.!=0]/1000,
+                                y = y_grid[M0.!=0]/1000,
+                                z = 0*x_grid[M0.!=0]/1000,
                                 ρ = M0[M0.!=0],
                                 T1 = T1[M0.!=0],
                                 T2 = T2[M0.!=0],
@@ -172,9 +172,9 @@ for site in sites
                 # define the phantom
                 obj = Phantom{Float64}(
                         name = subject*"_"*session*"_vol_phantom_koma",
-                            x = x_grid[M0.!=0],
-                            y = y_grid[M0.!=0],
-                            z = 0*x_grid[M0.!=0],
+                            x = x_grid[M0.!=0]/1000,
+                            y = y_grid[M0.!=0]/1000,
+                            z = 0*x_grid[M0.!=0]/1000,
                             ρ = M0[M0.!=0],
                             T1 = T1[M0.!=0],
                             T2 = T2[M0.!=0],
