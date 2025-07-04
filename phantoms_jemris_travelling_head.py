@@ -118,14 +118,14 @@ for site in sites:
             if args.format == 'mat':
                 # if slices are selected
                 if args.slice:
-                    for slice_num in range(PD_image.shape[2]):
+                    for slice_num in range(PD_image.shape[1]):
                         # save all slices .mat files
                         save_name = '{0}_{1}_phantom_jemris_slice{2:03d}.mat'.format(subject,session,slice_num+1)
                         # if specified add R maps else use T maps
                         if args.Rmaps:
-                            data = {'M0':PD_image[:,:,slice_num],'R1':R1_image[:,:,slice_num],'R2s':R2star_image[:,:,slice_num],'R2':R2_image[:,:,slice_num],'DB':db[:,:,slice_num],'OFFSET':offset,'RES':RES,'Shape':[PD_image.shape[0],PD_image.shape[1]]}
+                            data = {'M0':np.flip(PD_image[:,slice_num,:].transpose(), axis=1),'R1':np.flip(R1_image[:,slice_num,:].transpose(), axis=1),'R2s':np.flip(R2star_image[:,slice_num,:].transpose(), axis=1),'R2':np.flip(R2_image[:,slice_num,:].transpose(), axis=1),'DB':db[:,slice_num,:].transpose(),'OFFSET':offset,'RES':RES,'Shape':[PD_image.shape[0],PD_image.shape[2]]}
                         else:
-                            data = {'M0':PD_image[:,:,slice_num],'T1':T1_image[:,:,slice_num],'T2s':T2star_image[:,:,slice_num],'T2':T2_image[:,:,slice_num],'DB':db[:,:,slice_num],'OFFSET':offset,'RES':RES,'Shape':[PD_image.shape[0],PD_image.shape[1]]}
+                            data = {'M0':np.flip(PD_image[:,slice_num,:].transpose(), axis=1),'T1':np.flip(T1_image[:,slice_num,:].transpose(), axis=1),'T2s':np.flip(T2star_image[:,slice_num,:].transpose(), axis=1),'T2':np.flip(T2_image[:,slice_num,:].transpose(), axis=1),'DB':db[:,slice_num,:].transpose(),'OFFSET':offset,'RES':RES,'Shape':[PD_image.shape[0],PD_image.shape[2]]}
                         # save .mat files to target folder
                         savemat(join(target_folder, save_name), data)
                 # if there is nothing specified
@@ -142,22 +142,22 @@ for site in sites:
             elif args.format == 'h5':
                 # if slices are selected
                 if args.slice:
-                    for slice_num in range(PD_image.shape[2]):
+                    for slice_num in range(PD_image.shape[1]):
                         # save all slices as .h5 files
                         save_name = '{0}_{1}_phantom_jemris_slice{2:03d}.h5'.format(subject,session,slice_num+1)
                         # format data for the phantom
-                        data = np.zeros((PD_image.shape[1],PD_image.shape[0],5))            # first init data
-                        data[:,:,0] = PD_image[:,:,slice_num].transpose()             # add M0 (PD)  
-                        data[:,:,4] = db[:,:,slice_num].transpose()             # add DB (chemical shift --> set to zero)                    
+                        data = np.zeros((PD_image.shape[2],PD_image.shape[0],5))            # first init data
+                        data[:,:,0] = np.flip(PD_image[:,slice_num,:].transpose(), axis=1)  # add M0 (PD)  
+                        data[:,:,4] = db[:,slice_num,:].transpose()                         # add DB (chemical shift --> set to zero)                    
                         # if specified add R maps else use T maps
                         if args.Rmaps:
-                            data[:,:,1] = R1_image[:,:,slice_num].transpose()         # add R1
-                            data[:,:,2] = R2_image[:,:,slice_num].transpose()         # add R2
-                            data[:,:,3] = R2star_image[:,:,slice_num].transpose()     # add R2*  
+                            data[:,:,1] = np.flip(R1_image[:,slice_num,:].transpose(), axis=1)         # add R1
+                            data[:,:,2] = np.flip(R2_image[:,slice_num,:].transpose(), axis=1)         # add R2
+                            data[:,:,3] = np.flip(R2star_image[:,slice_num,:].transpose(), axis=1)     # add R2*  
                         else:
-                            data[:,:,1] = T1_image[:,:,slice_num].transpose()         # add T1
-                            data[:,:,2] = T2_image[:,:,slice_num].transpose()         # add T2
-                            data[:,:,3] = T2star_image[:,:,slice_num].transpose()     # add T2* 
+                            data[:,:,1] = np.flip(T1_image[:,slice_num,:].transpose(), axis=1)         # add T1
+                            data[:,:,2] = np.flip(T2_image[:,slice_num,:].transpose(), axis=1)         # add T2
+                            data[:,:,3] = np.flip(T2star_image[:,slice_num,:].transpose(), axis=1)     # add T2* 
                         # create groups and datasets structure for JEMRIS phantom
                         save_HDF5(save_dir=join(target_folder, save_name), data=data, offset=offset, resolution=RESOS)      
                 # if there is nothing specified

@@ -83,41 +83,41 @@ for site in sites
 
             # if the flag for slices is input
             if args["s"]
-                for slice in 1:size(PD_image)[3]
+                for slice in 1:size(PD_image)[2]
                     # resolution in mm
                     delta_x = 1 #PD_file.header.pixdim[2]
-                    delta_y = 1 #PD_file.header.pixdim[3]
+                    delta_z = 1 #PD_file.header.pixdim[3]
                     #vsize = voxel_size(PD_file.header) 
                     
                     # define spin position arrays
-                    x_dim = size(PD_image)[1]
-                    y_dim = size(PD_image)[2]
+                    x_dim = size(PD_image)[2]
+                    z_dim = size(PD_image)[3]
 
                     # Field of Views
                     FOVx = (x_dim-1)*delta_x 
-                    FOVy = (y_dim-1)*delta_y
+                    FOVz = (z_dim-1)*delta_z
 
                     # spin coordinate vectors (reshape according to shape)
-                    x = (-FOVx/2):delta_x:(FOVx/2)
-                    y = (-FOVy/2):delta_y:(FOVy/2) 
+                    x = reverse((-FOVx/2):delta_x:(FOVx/2))
+                    z = (-FOVz/2):delta_z:(FOVz/2) 
 
                     # turn into grid points
-                    x_grid, y_grid = x .+ y'*0, x*0 .+ y'
+                    x_grid, z_grid = x .+ z'*0, x*0 .+ z'
 
                     # flatten the sliced images and set DB to zero
-                    M0 = [(PD_image[1:end,1:end,slice]...)...]
-                    T1 = [(T1_image[1:end,1:end,slice]...)...]
-                    T2 = [(T2_image[1:end,1:end,slice]...)...]
-                    T2s = [(T2star_image[1:end,1:end,slice]...)...]
-                    DB = [(zeros((x_dim,y_dim))...)...]
+                    M0 = [(PD_image[1:end,slice,1:end]...)...]
+                    T1 = [(T1_image[1:end,slice,1:end]...)...]
+                    T2 = [(T2_image[1:end,slice,1:end]...)...]
+                    T2s = [(T2star_image[1:end,slice,1:end]...)...]
+                    DB = [(zeros((x_dim,z_dim))...)...]
 
                     # define the phantom
                     obj = Phantom{Float64}(
                             name = subject*"_"*session*"_slice"*string(slice)*"_phantom_koma",
-                                x = x_grid[M0.!=0]/1000,
-                                y = y_grid[M0.!=0]/1000,
+                                x = z_grid[M0.!=0]/1000,
+                                y = x_grid[M0.!=0]/1000,
                                 z = 0*x_grid[M0.!=0]/1000,
-                                ρ = M0[M0.!=0],
+                                ρ = M0[M0.!=0]/maximum(M0),
                                 T1 = T1[M0.!=0],
                                 T2 = T2[M0.!=0],
                                 T2s = T2s[M0.!=0],
@@ -175,7 +175,7 @@ for site in sites
                             x = x_grid[M0.!=0]/1000,
                             y = y_grid[M0.!=0]/1000,
                             z = 0*x_grid[M0.!=0]/1000,
-                            ρ = M0[M0.!=0],
+                            ρ = M0[M0.!=0]/maximum(M0),
                             T1 = T1[M0.!=0],
                             T2 = T2[M0.!=0],
                             T2s = T2s[M0.!=0],
