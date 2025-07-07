@@ -185,7 +185,7 @@ for site in sites:
                 nib.save(save_vol, save_name)
             
             # process and save T2/R2 image (both are generated using the same script so we assume both exist)
-            if type(T2_image) != type(None) and type(brain_seg) != type(None):
+            if type(R2star_image) != type(None) and type(T2_image) != type(None) and type(brain_seg) != type(None):
                 # clean images, but no masking required as they are already skull-stripped
                 T2_image[T2_image<0] = 0
                 T2_image[T2_image==inf] = 0

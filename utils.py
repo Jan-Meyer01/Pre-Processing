@@ -10,11 +10,9 @@ import shlex
 import subprocess
 import sys
 import h5py
-import nibabel as nib
 from skimage import morphology
 
 ## helper scripts for finding the nifit images in a given folder
-
 def is_image_file(filename):
     '''
     Check whether image is actually a nifti file
@@ -177,7 +175,32 @@ def find_replace_R2_T2_inconsistencies(T2_image, T2star_image, R2_image, R2star_
     R2star_image = np.max(T2_image)*(T2star_image/np.max(T2star_image))
     T2_image[diff_T2_T2star==1] = T2star_image[diff_T2_T2star==1]
     R2_image[diff_R2_R2star==1] = R2star_image[diff_R2_R2star==1]
-
+    # replace values for ventricles
+    for label_num in [4,43]:
+        T2_image[brain_seg==label_num] = T2star_image[brain_seg==label_num] 
+        R2_image[brain_seg==label_num] = R2star_image[brain_seg==label_num] 
+    """
+    # smooth out values in CSF, but not the edges
+    for label_num in [4,14,15,24,43]:   #range(1,int(np.max(brain_seg)))
+        T2_image_tissue_area = T2_image.copy()
+        R2_image_tissue_area = R2_image.copy()
+        # filter out the pixel for a specific tissue and filter it
+        indices_brain_seg = [brain_seg==label_num][0].astype(int)
+        # make sure that there is tissue to begin with...
+        if int(np.sum(np.sum(T2_image_tissue_area)))!=0 and int(np.sum(np.sum(R2_image_tissue_area)))!=0:
+            # then for every slice
+            for slice_num in range(T2_image_tissue_area.shape[2]):
+                # use bilateral filter on parts in tissue
+                win_size=5
+                indices_brain_seg[:,:,slice_num] = denoise_bilateral(image=indices_brain_seg[:,:,slice_num],win_size=win_size)
+                T2_image_tissue_area[:,:,slice_num][indices_brain_seg[:,:,slice_num]==0] = 0
+                R2_image_tissue_area[:,:,slice_num][indices_brain_seg[:,:,slice_num]==0] = 0
+                T2_image_tissue_area[:,:,slice_num] = denoise_bilateral(image=T2_image_tissue_area[:,:,slice_num],win_size=win_size)
+                R2_image_tissue_area[:,:,slice_num] = denoise_bilateral(image=R2_image_tissue_area[:,:,slice_num],win_size=win_size)
+                # put smoothed values back into the image
+            T2_image[indices_brain_seg==1] = T2_image_tissue_area[indices_brain_seg==1]
+            R2_image[indices_brain_seg==1] = R2_image_tissue_area[indices_brain_seg==1]
+    """
     return T2_image, R2_image
 
 ## helper scripts for performing the image pre-processing
